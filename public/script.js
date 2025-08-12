@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Google Apps ScriptのデプロイURL
     // !!! ここをあなたのデプロイURLに置き換えてください !!!
-    const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxa7lbZFEcWhcGy0S_HDRErB6yHDbxXtCP7k2TchGc12jokBcNCWFb9b-DifMeOWm8X/exec'; 
+    const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxa7lbZFEcWhkGy0S_HDRErB6yHDbxXtCP7k2TchGc12jokBcNCWFb9b-DifMeOWm8X/exec'; 
 
     async function loadMenuItems() {
         try {
@@ -337,6 +337,8 @@ document.addEventListener('DOMContentLoaded', function() {
             changeAmount: receivedAmount - totalAmount
         };
 
+        console.log('Sending payload:', payload); // Debugging: Log payload
+
         try {
             const response = await fetch(GAS_WEB_APP_URL, {
                 method: 'POST',
@@ -344,9 +346,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify(payload),
-                mode: 'no-cors'
+                mode: 'no-cors' // Re-enabled for debugging
             });
-            console.log('注文データを送信しました');
+            console.log('Request sent. Response status:', response.status); // Debugging: Log response status
+            // In no-cors mode, response.ok is always true for network success, and status is 0
+            // We cannot read response.text() in no-cors mode
+            console.log('注文データを送信しました (no-cors mode)');
         } catch (error) {
             console.error('エラー:', error);
             throw new Error('スプレッドシートへの保存に失敗しました。');

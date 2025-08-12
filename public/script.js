@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Google Apps ScriptのデプロイURL
     // !!! ここをあなたのデプロイURLに置き換えてください !!!
-    const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxa7lbZFEcWhcGy0S_HDRErB6yHDbxXtCP7k2TchGc12jokBcNCWFb9b-DifMeOWm8X/exec'; 
+    const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbw5--OG693b0upqbwQPrQeH4zIaGEZlYoFzEZU6lk8sPYS6zKPH1GMWJQBYjqX2YPBs/exec'; 
 
     async function loadMenuItems() {
         try {

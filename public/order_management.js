@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const filterButtons = document.querySelectorAll('.filter-btn');
 
     // !!! ここをあなたのデプロイURLに置き換えてください !!!
-    const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzKI8yX85-2CI74M4vZRxC77PpPwHQE08LO_SCA7iWRZ9QUTcW0HHHU6okxFXmcQNqg/exec';
+    const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzywAJqYxhOoaRRaukUUQI9Ti2Lkz67sBsgfiD-H0Jzks6Fdvgrsii2AtzoF_jP9buY/exec';
 
     let allOrders = [];
     let currentFilter = 'all';

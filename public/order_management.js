@@ -6,14 +6,16 @@ document.addEventListener('DOMContentLoaded', function() {
     const filterButtons = document.querySelectorAll('.filter-btn');
 
     // !!! ここをあなたのデプロイURLに置き換えてください !!!
-    const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzywAJqYxhOoaRRaukUUQI9Ti2Lkz67sBsgfiD-H0Jzks6Fdvgrsii2AtzoF_jP9buY/exec';
+    const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzKI8yX85-2CI74M4vZRxC77PpPwHQE08LO_SCA7iWRZ9QUTcW0HHHU6okxFXmcQNqg/exec';
 
     let allOrders = [];
     let currentFilter = 'all';
 
     // GASから注文データを取得
-    async function getOrdersFromGAS() {
-        orderManagementList.innerHTML = '<p>注文データを読み込み中...</p>';
+    async function getOrdersFromGAS(silent = false) {
+        if (!silent) {
+            orderManagementList.innerHTML = '<p>注文データを読み込み中...</p>';
+        }
         try {
             const response = await fetch(`${GAS_WEB_APP_URL}?action=getOrders`);
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
@@ -22,25 +24,26 @@ document.addEventListener('DOMContentLoaded', function() {
                 allOrders = result.data;
             } else {
                 console.error('GASからの注文データ取得に失敗:', result.error);
-                allOrders = [];
+                if (!silent) allOrders = [];
             }
         } catch (error) {
             console.error('GASへのリクエスト中にエラー:', error);
-            orderManagementList.innerHTML = '<p>注文データの読み込みに失敗しました。再読み込みしてください。</p>';
-            allOrders = [];
+            if (!silent) {
+                orderManagementList.innerHTML = '<p>注文データの読み込みに失敗しました。再読み込みしてください。</p>';
+                allOrders = [];
+            }
         }
     }
 
     // GASにステータス更新をリクエスト
     async function updateOrderStatusInGAS(uniqueId, newStatus) {
         try {
-            const response = await fetch(GAS_WEB_APP_URL, {
+            await fetch(GAS_WEB_APP_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ action: 'updateStatus', uniqueId, newStatus }),
-                mode: 'no-cors' // no-corsモードで送信
+                mode: 'no-cors'
             });
-            // no-corsではレスポンスの中身を確認できないため、成功したと仮定して画面を更新
             console.log('ステータス更新をリクエストしました。');
             return true;
         } catch (error) {
@@ -63,28 +66,30 @@ document.addEventListener('DOMContentLoaded', function() {
             default: newStatus = 'pending';
         }
 
+        // まず画面を楽観的に更新
+        item.ステータス = newStatus;
+        displayOrders();
+
+        // 次にサーバーに更新をリクエスト
         const success = await updateOrderStatusInGAS(uniqueId, newStatus);
-        if (success) {
-            // 画面を即時反映
-            item.ステータス = newStatus;
-            displayOrders();
+        if (!success) {
+            // 失敗した場合はUIを元に戻すか、エラー表示
+            alert('ステータス更新に失敗しました。ページを再読み込みします。');
+            location.reload();
         }
     }
 
     // 注文を表示する関数
     function displayOrders() {
+        const scrollPosition = window.scrollY;
         orderManagementList.innerHTML = '';
 
-        // フィルターを適用
         const filteredItems = allOrders.filter(item => {
             if (currentFilter === 'all') return true;
-            // 数量が0より大きいアイテムのみ表示
             return item.ステータス === currentFilter && item.数量 > 0;
         });
         
-        // 日時が新しい順にソート
         filteredItems.sort((a, b) => new Date(b.日時) - new Date(a.日時));
-
 
         if (filteredItems.length === 0) {
             orderManagementList.innerHTML = '<p>表示する注文がありません。</p>';
@@ -92,7 +97,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         filteredItems.forEach(item => {
-            // 数量分だけ個別の表示アイテムを作成
             for (let i = 0; i < item.数量; i++) {
                 const itemElement = document.createElement('div');
                 itemElement.className = `order-management-item status-${item.ステータス}`;
@@ -115,16 +119,15 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
-        // クリックイベントを各アイテムに設定
         document.querySelectorAll('.order-management-item').forEach(item => {
             item.addEventListener('click', function() {
                 const uniqueId = this.getAttribute('data-unique-id');
                 toggleStatus(uniqueId);
             });
         });
+        window.scrollTo(0, scrollPosition);
     }
 
-    // ステータスの日本語テキストを取得
     function getStatusText(status) {
         switch (status) {
             case 'pending': return '未提供';
@@ -134,31 +137,38 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // フィルターボタンのイベントリスナー
-    filterButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            filterButtons.forEach(btn => btn.classList.remove('active'));
-            this.classList.add('active');
-            currentFilter = this.dataset.filter;
-            displayOrders();
-        });
-    });
-
-    // ハンバーガーメニューのイベント
-    hamburgerMenu.addEventListener('click', () => {
-        sideMenu.classList.toggle('open');
-        overlay.classList.toggle('active');
-    });
-
-    overlay.addEventListener('click', () => {
-        sideMenu.classList.remove('open');
-        overlay.classList.remove('active');
-    });
-
-    // 初期表示
-    async function init() {
-        await getOrdersFromGAS();
+    async function refreshOrders() {
+        await getOrdersFromGAS(true); // サイレント更新
         displayOrders();
+    }
+
+    // 初期表示と自動更新の設定
+    async function init() {
+        await getOrdersFromGAS(); // 初回ロード
+        displayOrders();
+
+        // 10秒ごとに自動更新
+        setInterval(refreshOrders, 10000);
+
+        // イベントリスナー（一度だけ設定）
+        filterButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                filterButtons.forEach(btn => btn.classList.remove('active'));
+                this.classList.add('active');
+                currentFilter = this.dataset.filter;
+                displayOrders();
+            });
+        });
+
+        hamburgerMenu.addEventListener('click', () => {
+            sideMenu.classList.toggle('open');
+            overlay.classList.toggle('active');
+        });
+
+        overlay.addEventListener('click', () => {
+            sideMenu.classList.remove('open');
+            overlay.classList.remove('active');
+        });
     }
 
     init();

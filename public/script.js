@@ -312,17 +312,19 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         const changeAmount = receivedAmount - totalAmount;
 
-        try {
-            await saveToSpreadsheet(currentTableNumber);
-            orderItems = [];
-            currentTableNumber = '';
-            tableNumberDisplay.textContent = '';
-            updateOrderList();
-            paymentScreen.classList.add('hidden');
-            alert('支払いが完了しました。\nおつり：¥' + changeAmount);
-        } catch (error) {
-            alert('エラーが発生しました: ' + error.message);
-        }
+        // フロントエンドを即座に更新
+        orderItems = [];
+        currentTableNumber = '';
+        tableNumberDisplay.textContent = '';
+        updateOrderList();
+        paymentScreen.classList.add('hidden');
+        alert('支払いが完了しました。\nおつり：¥' + changeAmount);
+
+        // バックグラウンドでスプレッドシートに送信
+        saveToSpreadsheet(currentTableNumber).catch(error => {
+            console.error('スプレッドシートへの保存に失敗しました:', error);
+            alert('注文データの保存に失敗しました。ネットワーク接続を確認してください。');
+        });
     });
 
     async function saveToSpreadsheet(tableNumber) {
